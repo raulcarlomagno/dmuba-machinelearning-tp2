@@ -22,10 +22,22 @@ csvData$profile_yn_gold <- NULL
 csvData$'_unit_id' <- NULL
 
 
+library("lubridate")
+
+class(mdy_hms(csvData$created))
+
+cbind(csvData$created, mdy_hms(csvData$created))
+head(cbind(csvData$created, csvData$tweet_created))
+
+diferencia <- difftime(mdy_hms(csvData$tweet_created), mdy_hms(csvData$created), units = c("weeks"))
+
+hist(as.numeric(diferencia))
 
 str(csvData)
 plot_missing(csvData)
 plot_histogram(csvData)
+
+
 plot_bar(csvData)
 create_report(csvData)
 
