@@ -1,18 +1,7 @@
-libs <- c("data.table", "DataExplorer")
-sapply(libs[sapply(libs, require, character.only = TRUE, quietly = TRUE) == FALSE], install.packages)
-
-#lubripack
-sapply(libs, require, character.only = TRUE)
-
-library(data.table)
-library(DataExplorer)
-
-libs <- c("data.table", "DataExplorer")
-sapply(libs[sapply(libs, require, character.only = TRUE, quietly = TRUE) == FALSE], install.packages)
-
-(if(!require("data.table", quietly = TRUE)) install.packages("data.table"))
-(if(!require("ggplot2", quietly = TRUE)) install.packages("ggplot2"))
-(if(!require("DataExplorer", quietly = TRUE)) install.packages("DataExplorer"))
+library("data.table")
+library("DataExplorer")
+library("ggplot2") 
+library("lubridate")
 
 csvData <- fread("gender-classifier.csv")
 csvData$tweet_id <- NULL
@@ -20,24 +9,24 @@ csvData$profileimage <- NULL
 csvData$gender_gold <- NULL
 csvData$profile_yn_gold <- NULL
 csvData$'_unit_id' <- NULL
+csvData <- csvData[csvData$profile_yn == "yes",]
+csvData$profile_yn <- NULL
+csvData <- csvData[csvData$gender != "unknown",]
+csvData$'_unit_state' <- NULL
+csvData$diff_prof_twt <- as.numeric(difftime(mdy_hms(csvData$tweet_created), mdy_hms(csvData$created), units = c("weeks")))
+csvData$tweet_created <- NULL
+csvData$created <- NULL
+csvData$`_last_judgment_at` <- NULL
+csvData$name <- NULL
 
+table(csvData$`_golden`)
+unique(csvData$`_trusted_judgments`)
 
-library("lubridate")
-
-class(mdy_hms(csvData$created))
-
-cbind(csvData$created, mdy_hms(csvData$created))
-head(cbind(csvData$created, csvData$tweet_created))
-
-diferencia <- difftime(mdy_hms(csvData$tweet_created), mdy_hms(csvData$created), units = c("weeks"))
-
-hist(as.numeric(diferencia))
 
 str(csvData)
+
 plot_missing(csvData)
 plot_histogram(csvData)
-
-
 plot_bar(csvData)
 create_report(csvData)
 
@@ -48,5 +37,6 @@ qplot(csvData$gender_gold)
 
 table(csvData$profile_yn_gold)
 table(csvData$profile_yn_gold) / sum(table(csvData$profile_yn_gold))
+
 
 
