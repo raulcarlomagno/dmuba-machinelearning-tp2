@@ -6,11 +6,12 @@ library("lubridate")
 library("tokenizers")
 #library("stopwords") #detach("package:stopwords", unload = TRUE)
 #library("tm") #detach("package:tm", unload = TRUE)
-#library(plyr)
+library(plyr)
+library("stringr")
 
 stopwords <- scan("stopwords.txt", character(), quote = "")
 stopwords <- c(stopwords, scan("customstopwords.txt", character(), quote = ""))
-stopwords <- c(stopwords, 0:10)
+stopwords <- c(stopwords, as.character(0:10))
 
 csvData <- fread("gender-classifier.csv")
 csvData$tweet_id <- NULL
@@ -29,7 +30,7 @@ csvData$`_last_judgment_at` <- NULL
 csvData$name <- NULL
 csvData$`_golden` <- NULL
 csvData$`_trusted_judgments` <- NULL
-
+csvData$text <- str_replace_all(csvData$text, "&amp;", "&");
 
 # ver lo de los colores
 # colores <- paste0("#",subset(csvData$sidebar_color, nchar(csvData$sidebar_color) == 6  )  )
@@ -44,12 +45,22 @@ qplot(tokenize_word_stems(csvData$text, stopwords = stopwords::stopwords("en")))
 
 unique(tokenize_words(csvData$text, stopwords = stopwords::stopwords("en")))
 
-tokens <- tokenize_tweets(csvData[csvData$gender == "male",]$text, stopwords = stopwords) 
-dftokens <- data.frame(palabra = matrix(unlist(tokens), byrow=T),stringsAsFactors=FALSE)
-dfFrec <- count(dftokens, "palabra")
-head(dfFrec[order(-dfFrec$freq),], 15)
 
-aggregate(tokens, FUN = sum)
+
+procesarPalabras <- function (genero){
+  tokens <- tokenize_tweets(csvData[csvData$gender == genero,]$text, stopwords = stopwords)
+  tokens <- unlist(tokens)
+  tokens <- tokens[is.na(as.numeric(tokens))] #filtro los numeros
+  tokens <- tokens[str_length(tokens) > 2]
+    
+  dftokens <- count(tokens)
+  return(head(dftokens[order(-dftokens$freq),], 30)[,1])
+}
+
+listas <- sapply(unique(csvData$gender), procesarPalabras)
+listas
+
+
 
 str(csvData)
 
