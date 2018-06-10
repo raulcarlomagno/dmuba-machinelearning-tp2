@@ -2,6 +2,15 @@ library("data.table")
 library("DataExplorer")
 library("ggplot2") 
 library("lubridate")
+#library("arules") #detach("package:arules", unload = TRUE)
+library("tokenizers")
+#library("stopwords") #detach("package:stopwords", unload = TRUE)
+#library("tm") #detach("package:tm", unload = TRUE)
+#library(plyr)
+
+stopwords <- scan("stopwords.txt", character(), quote = "")
+stopwords <- c(stopwords, scan("customstopwords.txt", character(), quote = ""))
+stopwords <- c(stopwords, 0:10)
 
 csvData <- fread("gender-classifier.csv")
 csvData$tweet_id <- NULL
@@ -18,16 +27,36 @@ csvData$tweet_created <- NULL
 csvData$created <- NULL
 csvData$`_last_judgment_at` <- NULL
 csvData$name <- NULL
+csvData$`_golden` <- NULL
+csvData$`_trusted_judgments` <- NULL
 
-table(csvData$`_golden`)
-unique(csvData$`_trusted_judgments`)
 
+# ver lo de los colores
+# colores <- paste0("#",subset(csvData$sidebar_color, nchar(csvData$sidebar_color) == 6  )  )
+# coloresrgb <- col2rgb(colores)[]
+# coloresint <- coloresrgb[1,] * 256 * 256 + coloresrgb[2,] * 256 + coloresrgb[3,]
+# 256*256*red+256*green+blue
+# qplot(coloresint)
+# qplot( discretize(coloresint) )
+
+
+qplot(tokenize_word_stems(csvData$text, stopwords = stopwords::stopwords("en")))
+
+unique(tokenize_words(csvData$text, stopwords = stopwords::stopwords("en")))
+
+tokens <- tokenize_tweets(csvData[csvData$gender == "male",]$text, stopwords = stopwords) 
+dftokens <- data.frame(palabra = matrix(unlist(tokens), byrow=T),stringsAsFactors=FALSE)
+dfFrec <- count(dftokens, "palabra")
+head(dfFrec[order(-dfFrec$freq),], 15)
+
+aggregate(tokens, FUN = sum)
 
 str(csvData)
 
 plot_missing(csvData)
 plot_histogram(csvData)
 plot_bar(csvData)
+plot_boxplot(csvData, by = "gender")
 create_report(csvData)
 
 summary(csvData$profile_yn)
