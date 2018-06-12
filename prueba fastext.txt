@@ -1,0 +1,34 @@
+datatext <- data.frame(cbind(csvData[, "text"], csvData[, "gender"]))
+datatext[datatext$gender == "male", "gender"] <- "human"
+datatext[datatext$gender == "female", "gender"] <- "human"
+rowsTrain <- sample(nrow(datatext), round(0.8 * nrow(datatext)), replace = FALSE)
+train_sentences <- datatext[rowsTrain,]
+test_sentences <- datatext[-rowsTrain,]
+
+tmp_file_model <- tempfile()
+train_labels <- paste0("__label__", train_sentences[,"gender"])
+train_texts <- tolower(train_sentences[,"text"])
+train_to_write <- paste(train_labels, train_texts)
+train_tmp_file_txt <- tempfile()
+writeLines(text = train_to_write, con = train_tmp_file_txt)
+
+
+test_labels <- paste0("__label__", test_sentences[,"gender"])
+test_labels_without_prefix <- test_sentences[,"gender"]
+test_texts <- tolower(test_sentences[,"text"])
+test_to_write <- paste(test_labels, test_texts)
+
+execute(commands = c("supervised", "-input", train_tmp_file_txt, "-output", tmp_file_model, "-dim", 20, "-lr", 1, "-epoch", 20, "-wordNgrams", 2, "-verbose", 2))
+model <- load_model(tmp_file_model)
+predictions <- predict(model, sentences = test_to_write)
+print(head(predictions, 5))
+
+mean(names(unlist(predictions)) == test_labels_without_prefix)
+get_hamming_loss(as.list(test_labels_without_prefix), predictions)
+predictions <- predict(model, sentences = test_to_write)
+print(head(predictions, 5))
+print(head(predict(model, sentences = test_to_write, simplify = TRUE)))
+unlink(train_tmp_file_txt)
+unlink(tmp_file_model)
+rm(model)
+gc()
