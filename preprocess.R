@@ -100,6 +100,8 @@ vocabularios.female <- vocabularios[[2]]
 vocabularios.brand <- vocabularios[[3]]
 
 
+ggplot(data=csvData,aes(x=seq_along(csvData$diff_prof_twt), y=diff_prof_twt, color=gender)) +
+  geom_point( )
 
 csvData$score_vocab_male <- 
 
