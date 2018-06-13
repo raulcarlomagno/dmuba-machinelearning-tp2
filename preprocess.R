@@ -23,7 +23,7 @@ csvData$'_unit_id' <- NULL
 csvData <- csvData[csvData$profile_yn == "yes",]
 csvData$profile_yn <- NULL
 csvData <- csvData[csvData$gender != "unknown",]
-csvData$gender <- as.factor(csvData$gender)
+#csvData$gender <- as.factor(csvData$gender) #hacerlo a lo ultimo si es necesario
 csvData$'_unit_state' <- NULL
 csvData$diff_prof_twt <- as.numeric(difftime(mdy_hms(csvData$tweet_created), mdy_hms(csvData$created), units = c("weeks")))
 csvData$tweets_per_day <- round(csvData$tweet_count / as.numeric(difftime(now("UTC"), mdy_hms(csvData$created), units = c("days"))))
@@ -86,7 +86,7 @@ armarVocabularios <- function (genero){
   
   dftokens <- count(tokens)
   names(dftokens) <- c("word", "freq")
-  dftokensMost <- head(dftokens[order(-dftokens$freq),], 25)
+  dftokensMost <- head(dftokens[order(-dftokens$freq),], 15) #15 palabras de bow para cada genero
   dftokensMost$relative <- dftokensMost$freq / sum(dftokensMost$freq) * 100
   dftokensMost$freq <- NULL
   
@@ -119,17 +119,26 @@ csvData$score_vocab_brand <- sapply(tweets_tokens, calculateVocabularyScore, voc
 csvData$score_vocab_male <- sapply(tweets_tokens, calculateVocabularyScore, vocabulary = vocabularios.male)
 csvData$score_vocab_female <- sapply(tweets_tokens, calculateVocabularyScore, vocabulary = vocabularios.female)
 
-predictOnScore <- function(rowSample){
-  if(rowSample$score_vocab_brand > rowSample$score_vocab_male & rowSample$score_vocab_brand > rowSample$score_vocab_female)
+predictOnScore <- function(score_vocab_brand, score_vocab_male, score_vocab_female){
+  if(score_vocab_brand > score_vocab_male & score_vocab_brand > score_vocab_female)
     return("brand")
-  if(rowSample$score_vocab_male > rowSample$score_vocab_brand & rowSample$score_vocab_male > rowSample$score_vocab_female)
+  if(score_vocab_male > score_vocab_brand & score_vocab_male > score_vocab_female)
     return("male")
-  if(rowSample$score_vocab_female > rowSample$score_vocab_brand & rowSample$score_vocab_female > rowSample$score_vocab_male)
+  if(score_vocab_female > score_vocab_brand & score_vocab_female > score_vocab_male)
     return("female")
   
   return(NA)
 }
-rapply(csvData, predictOnScore)
+gender_predicts <- mapply(predictOnScore, csvData$score_vocab_brand,csvData$score_vocab_male,csvData$score_vocab_female)
+pred <- data.frame(gender_predicts,csvData$gender)
+pred <- pred[!is.na(pred$gender_predicts),]
+table(pred)
+mean(pred$gender_predicts == pred$csvData.gender)
+
+
+na.omit(gender_predicts == csvData$gender)
+
+
 
 match(tokenstext[[]], vocabularios.male)
 
