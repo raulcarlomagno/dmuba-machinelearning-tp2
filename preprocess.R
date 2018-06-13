@@ -26,6 +26,7 @@ csvData <- csvData[csvData$gender != "unknown",]
 csvData$gender <- as.factor(csvData$gender)
 csvData$'_unit_state' <- NULL
 csvData$diff_prof_twt <- as.numeric(difftime(mdy_hms(csvData$tweet_created), mdy_hms(csvData$created), units = c("weeks")))
+csvData$tweets_per_day <- round(csvData$tweet_count / as.numeric(difftime(now("UTC"), mdy_hms(csvData$created), units = c("days"))))
 csvData$tweet_created <- NULL
 csvData$created <- NULL
 csvData$`_last_judgment_at` <- NULL
@@ -76,9 +77,6 @@ ggplot(csvData, aes(sidebar_color_cat)) +
 
 
 
-
-
-
 armarVocabularios <- function (genero){
   tokens <- tokenize_tweets(csvData[csvData$gender == genero,]$text, stopwords = stopwords)
   tokens <- unlist(tokens)
@@ -87,7 +85,8 @@ armarVocabularios <- function (genero){
   tokens <- tokens[str_length(tokens) > 2] #filtro palabras menores a 3
   
   dftokens <- count(tokens)
-  dftokensMost <- head(dftokens[order(-dftokens$freq),], 50)
+  names(dftokens) <- c("word", "freq")
+  dftokensMost <- head(dftokens[order(-dftokens$freq),], 25)
   dftokensMost$relative <- dftokensMost$freq / sum(dftokensMost$freq) * 100
   dftokensMost$freq <- NULL
   
@@ -99,13 +98,41 @@ vocabularios.male <- vocabularios[[1]]
 vocabularios.female <- vocabularios[[2]]
 vocabularios.brand <- vocabularios[[3]]
 
-
-ggplot(data=csvData,aes(x=seq_along(csvData$diff_prof_twt), y=diff_prof_twt, color=gender)) +
+#tmp <- csvData[order(csvData$gender,csvData$diff_prof_twt),]
+tmp <- csvData[order(csvData$gender),]
+ggplot(data=tmp,aes(x=seq_along(tmp$diff_prof_twt), y=diff_prof_twt, color=gender)) +
   geom_point( )
 
-csvData$score_vocab_male <- 
 
-match(tokenize_tweets(csvData$text, stopwords = stopwords)[[1]], vocabularios.male)
+tmp2 <- csvData[order(csvData$gender, csvData),]
+ggplot(data=tmp2,aes(x=seq_along(tmp2$tweets_per_day), y=tweets_per_day, color=gender)) +
+  geom_point( )
+
+
+
+
+calculateVocabularyScore <- function(tweet_tokens, vocabulary){
+  return(sum(vocabulary[match(tweet_tokens, vocabulary$word), "relative"], na.rm = TRUE))
+}
+tweets_tokens <- tokenize_tweets(csvData$text, stopwords = stopwords)
+csvData$score_vocab_brand <- sapply(tweets_tokens, calculateVocabularyScore, vocabulary = vocabularios.brand)
+csvData$score_vocab_male <- sapply(tweets_tokens, calculateVocabularyScore, vocabulary = vocabularios.male)
+csvData$score_vocab_female <- sapply(tweets_tokens, calculateVocabularyScore, vocabulary = vocabularios.female)
+
+predictOnScore <- function(rowSample){
+  if(rowSample$score_vocab_brand > rowSample$score_vocab_male & rowSample$score_vocab_brand > rowSample$score_vocab_female)
+    return("brand")
+  if(rowSample$score_vocab_male > rowSample$score_vocab_brand & rowSample$score_vocab_male > rowSample$score_vocab_female)
+    return("male")
+  if(rowSample$score_vocab_female > rowSample$score_vocab_brand & rowSample$score_vocab_female > rowSample$score_vocab_male)
+    return("female")
+  
+  return(NA)
+}
+rapply(csvData, predictOnScore)
+
+match(tokenstext[[]], vocabularios.male)
+
 match(tokenize_tweets(csvData$text, stopwords = stopwords)[[1]], vocabularios.female)
 match(tokenize_tweets(csvData$text, stopwords = stopwords)[[1]], vocabularios.brand)
 
