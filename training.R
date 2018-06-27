@@ -75,3 +75,9 @@ library(pROC)
 prueba <- multiclass.roc(response = ensemblePred$data$truth, predictor = as.numeric(ensemblePred$data$response))
 prueba
 #plot(prueba$rocs[1], print.auc=TRUE)
+
+
+#https://github.com/PhilippPro/MulticlassAUC/blob/master/MulticlassAUC.R
+
+library(caTools)
+colAUC(getPredictionProbabilities(ensemblePred), ensemblePred$data$truth)
