@@ -2,37 +2,37 @@ library("data.table")
 library("dplyr")
 library("mlr")
 
-data <- fread("data.csv", data.table = FALSE)
+data <- fread("data.csv", data.table = FALSE, stringsAsFactors = TRUE)
 
 #por ahora hago clasificacion binaria, cuando sea multiclass,  poner stringasfactors = TRUE en fread
-data[data$gender == 'male' | data$gender == 'female', 'gender'] <- 'human'
-data$sidebar_color_cat <- as.factor(data$sidebar_color_cat)
-data$link_color_cat <- as.factor(data$link_color_cat)
+#data[data$gender == 'male' | data$gender == 'female', 'gender'] <- 'human'
+#data$sidebar_color_cat <- as.factor(data$sidebar_color_cat)
+#data$link_color_cat <- as.factor(data$link_color_cat)
 
 glimpse(data)
 
+train.set <- sample(nrow(data), size = round(0.8 * nrow(data)))
+test.set <- setdiff(seq_len(nrow(data)), train.set)
+
 #defino la tarea de clasifiacion, hacerla multiclass despues
-task = makeClassifTask(data = data, target = "gender")
+task = makeClassifTask(id = "task1", data = data, target = "gender")
 print(task)
 
-#measures disponibles https://mlr-org.github.io/mlr/articles/tutorial/devel/measures.html
+#measures disponibles
+#https://mlr-org.github.io/mlr-tutorial/release/html/measures/index.html
 #fpr (False positive rate): Percentage of misclassified observations in the positive class
 #tpr (True positive rate): Percentage of correctly classified observations in the positive class
 #mmce (Mean misclassification error): Defined as: mean(response != truth)
 #acc (Accuracy): Defined as: mean(response == truth)
 
 
-train.set <- sample(nrow(data), size = round(2/3 * nrow(data)))
-test.set <- setdiff(seq_len(nrow(data)), train.set)
-
 #https://mlr-org.github.io/mlr-tutorial/release/html/integrated_learners/
 # #ksvmLrnr o ksvmLrnr2
 learnerClasses <- c(
-  #"classif.randomForest",
+#  "classif.randomForest",
   "classif.kknn",
   "classif.rpart",
   "classif.lda",
-  "classif.logreg",
   "classif.naiveBayes",
   "classif.C50",
   "classif.ctree"
@@ -50,13 +50,12 @@ learners <- makeLearners(learnerClasses, predict.type = "prob")
 #ksvmLrnr2 = makeTuneWrapper(ksvmLrnr, rdesc.inner, ms, ps, ctrl)
 
 #entrenamos los modelos por separado para ver su performance individual
-measures <- list(auc, mmce)
+measures <- list(acc, mmce, mlr::multiclass.au1p, mlr::multiclass.au1u)
 rdesc <- makeResampleDesc(method = "CV", iters = 5, stratify = TRUE)
 bmr <- benchmark(learners, tasks = task, resampling = rdesc, measures = measures)
 bmr
 df <- generateThreshVsPerfData(bmr, measures = list(fpr, tpr, mmce))
 plotROCCurves(df)
-
 
 #creamos el modelo ensamblado
 stackedLearner <- makeStackedLearner(base.learners = learners, predict.type = "prob", method = "hill.climb")
@@ -64,6 +63,9 @@ ensembleModel = train(stackedLearner, task, subset = train.set)
 ensemblePred = predict(ensembleModel, task, subset = test.set)
 
 measureMMCE(data[test.set, "gender"], ensemblePred$data$response)
-#o
 measureACC(data[test.set, "gender"], ensemblePred$data$response)
+measureAUC(probabilities = ensemblePred$data$prob.brand, truth = data[test.set, "gender"],  positive = "brand", negative = "human")
 
+library(pROC)
+prueba <- multiclass.roc(response = ensemblePred$data$truth, predictor = as.numeric(ensemblePred$data$response))
+#plot(prueba$rocs[1], print.auc=TRUE)
