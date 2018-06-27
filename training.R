@@ -20,11 +20,11 @@ print(task)
 
 #measures disponibles
 #https://mlr-org.github.io/mlr-tutorial/release/html/measures/index.html
+#https://www.math.ucdavis.edu/~saito/data/roc/ferri-class-perf-metrics.pdf
 #fpr (False positive rate): Percentage of misclassified observations in the positive class
 #tpr (True positive rate): Percentage of correctly classified observations in the positive class
 #mmce (Mean misclassification error): Defined as: mean(response != truth)
 #acc (Accuracy): Defined as: mean(response == truth)
-
 
 #https://mlr-org.github.io/mlr-tutorial/release/html/integrated_learners/
 # #ksvmLrnr o ksvmLrnr2
@@ -50,22 +50,28 @@ learners <- makeLearners(learnerClasses, predict.type = "prob")
 #ksvmLrnr2 = makeTuneWrapper(ksvmLrnr, rdesc.inner, ms, ps, ctrl)
 
 #entrenamos los modelos por separado para ver su performance individual
-measures <- list(acc, mmce, mlr::multiclass.au1p, mlr::multiclass.au1u)
+measures <- list(acc, mmce, mlr::multiclass.aunu)
 rdesc <- makeResampleDesc(method = "CV", iters = 5, stratify = TRUE)
 bmr <- benchmark(learners, tasks = task, resampling = rdesc, measures = measures)
 bmr
-df <- generateThreshVsPerfData(bmr, measures = list(fpr, tpr, mmce))
-plotROCCurves(df)
+#df <- generateThreshVsPerfData(bmr, measures = list(fpr, tpr, mmce))
+#plotROCCurves(df)
+
+
+
 
 #creamos el modelo ensamblado
 stackedLearner <- makeStackedLearner(base.learners = learners, predict.type = "prob", method = "hill.climb")
 ensembleModel = train(stackedLearner, task, subset = train.set)
 ensemblePred = predict(ensembleModel, task, subset = test.set)
 
-measureMMCE(data[test.set, "gender"], ensemblePred$data$response)
-measureACC(data[test.set, "gender"], ensemblePred$data$response)
-measureAUC(probabilities = ensemblePred$data$prob.brand, truth = data[test.set, "gender"],  positive = "brand", negative = "human")
+measureMMCE(ensemblePred$data$truth, ensemblePred$data$response)
+measureACC(ensemblePred$data$truth, ensemblePred$data$response)
+measureAUC(probabilities = ensemblePred$data$prob.brand, truth = data[test.set, "gender"],  positive = "brand")
+measureAUC(probabilities = ensemblePred$data$prob.male, truth = data[test.set, "gender"],  positive = "male")
+measureAUC(probabilities = ensemblePred$data$prob.female, truth = data[test.set, "gender"],  positive = "female")
 
 library(pROC)
 prueba <- multiclass.roc(response = ensemblePred$data$truth, predictor = as.numeric(ensemblePred$data$response))
+prueba
 #plot(prueba$rocs[1], print.auc=TRUE)
