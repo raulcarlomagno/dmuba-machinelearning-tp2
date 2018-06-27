@@ -11,7 +11,7 @@ data <- fread("data.csv", data.table = FALSE, stringsAsFactors = TRUE)
 
 glimpse(data)
 
-train.set <- sample(nrow(data), size = round(0.8 * nrow(data)))
+train.set <- sample(nrow(data), size = round(0.8 * nrow(data)), replace = FALSE)
 test.set <- setdiff(seq_len(nrow(data)), train.set)
 
 #defino la tarea de clasifiacion, hacerla multiclass despues
@@ -67,17 +67,19 @@ ensemblePred = predict(ensembleModel, task, subset = test.set)
 
 measureMMCE(ensemblePred$data$truth, ensemblePred$data$response)
 measureACC(ensemblePred$data$truth, ensemblePred$data$response)
-measureAUC(probabilities = ensemblePred$data$prob.brand, truth = data[test.set, "gender"],  positive = "brand")
-measureAUC(probabilities = ensemblePred$data$prob.male, truth = data[test.set, "gender"],  positive = "male")
-measureAUC(probabilities = ensemblePred$data$prob.female, truth = data[test.set, "gender"],  positive = "female")
+measureAUC(probabilities = ensemblePred$data$prob.brand, truth = ensemblePred$data$truth,  positive = "brand")
+measureAUC(probabilities = ensemblePred$data$prob.male, truth = ensemblePred$data$truth,  positive = "male")
+measureAUC(probabilities = ensemblePred$data$prob.female, truth = ensemblePred$data$truth,  positive = "female")
 
 library(pROC)
-prueba <- multiclass.roc(response = ensemblePred$data$truth, predictor = as.numeric(ensemblePred$data$response))
+prueba <- multiclass.roc(ensemblePred$data$truth, as.numeric(ensemblePred$data$response))
 prueba
-#plot(prueba$rocs[1], print.auc=TRUE)
+#plot.roc(ensemblePred$data$truth, as.numeric(ensemblePred$data$response), levels=as.factor(c("brand", "male")))
+#plot.roc(ensemblePred$data$truth, as.numeric(ensemblePred$data$response), levels=as.factor(c("brand", "female")))
+#plot.roc(ensemblePred$data$truth, as.numeric(ensemblePred$data$response), levels=as.factor(c("male", "female")))
 
 
 #https://github.com/PhilippPro/MulticlassAUC/blob/master/MulticlassAUC.R
 
 library(caTools)
-colAUC(getPredictionProbabilities(ensemblePred), ensemblePred$data$truth)
+colAUC(getPredictionProbabilities(ensemblePred), ensemblePred$data$truth, plotROC=TRUE)
