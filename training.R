@@ -57,13 +57,16 @@ bmr
 #df <- generateThreshVsPerfData(bmr, measures = list(fpr, tpr, mmce))
 #plotROCCurves(df)
 
-
+plot.roc(ensemblePred$data$truth, as.numeric(ensemblePred$data$response), levels=as.factor(c("brand", "male")))
 
 
 #creamos el modelo ensamblado
 stackedLearner <- makeStackedLearner(base.learners = learners, predict.type = "prob", method = "hill.climb")
 ensembleModel = train(stackedLearner, task, subset = train.set)
 ensemblePred = predict(ensembleModel, task, subset = test.set)
+ensemblePerf <- performance(ensemblePred, measures = list(acc, mmce))
+ensemblePerf
+
 
 measureMMCE(ensemblePred$data$truth, ensemblePred$data$response)
 measureACC(ensemblePred$data$truth, ensemblePred$data$response)
@@ -77,6 +80,19 @@ prueba
 #plot.roc(ensemblePred$data$truth, as.numeric(ensemblePred$data$response), levels=as.factor(c("brand", "male")))
 #plot.roc(ensemblePred$data$truth, as.numeric(ensemblePred$data$response), levels=as.factor(c("brand", "female")))
 #plot.roc(ensemblePred$data$truth, as.numeric(ensemblePred$data$response), levels=as.factor(c("male", "female")))
+
+brandRoc <- roc(ifelse(ensemblePred$data$truth == 'brand', 'brand', 'other'), ensemblePred$data$prob.brand)
+brandRoc
+plot.roc(brandRoc, main="Brand vs others")
+
+maleRoc <- roc(ifelse(ensemblePred$data$truth == 'male', 'male', 'other'), ensemblePred$data$prob.male)
+maleRoc
+plot.roc(maleRoc, main="Male vs others")
+
+femaleRoc <- roc(ifelse(ensemblePred$data$truth == 'female', 'female', 'other'), ensemblePred$data$prob.female)
+femaleRoc
+plot.roc(femaleRoc, main="Male vs others")
+
 
 
 #https://github.com/PhilippPro/MulticlassAUC/blob/master/MulticlassAUC.R
