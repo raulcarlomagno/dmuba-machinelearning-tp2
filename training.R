@@ -13,11 +13,8 @@ test.set <- setdiff(seq_len(nrow(data)), train.set)
 task = makeClassifTask(id = "task1", data = data, target = "gender")
 print(task)
 
-
-#https://mlr-org.github.io/mlr-tutorial/release/html/integrated_learners/
-# #ksvmLrnr o ksvmLrnr2
 learnerClasses <- c(
-#  "classif.randomForest",
+  "classif.randomForest",
   "classif.glmnet",
   "classif.multinom",
   "classif.kknn",
@@ -27,17 +24,17 @@ learnerClasses <- c(
   "classif.C50",
   "classif.ctree"
 )
+# [1] "GLM with Lasso or Elasticnet Regularization"
+# [1] "Multinomial Regression"
+# [1] "k-Nearest Neighbor"
+# [1] "Decision Tree"
+# [1] "Linear Discriminant Analysis"
+# [1] "Naive Bayes"
+# [1] "C50"
+# [1] "Conditional Inference Trees"
+
 learners <- makeLearners(learnerClasses, predict.type = "prob")
 
-#en la prueba final lo agregamos, tarda mucho en entrenar
-#ksvmLrnr = makeLearner("classif.ksvm", predict.type = "prob")
-### Tune wrapper for ksvm
-#rdesc.inner = makeResampleDesc("Holdout")
-#ps = makeParamSet(
-#  makeDiscreteParam("C", 2^(-1:1))
-#)
-#ctrl = makeTuneControlGrid()
-#ksvmLrnr2 = makeTuneWrapper(ksvmLrnr, rdesc.inner, ms, ps, ctrl)
 
 #entrenamos los modelos por separado para ver su performance individual
 measures <- list(acc, mmce, mlr::multiclass.aunu)
@@ -46,6 +43,50 @@ bmr <- benchmark(learners, tasks = task, resampling = rdesc, measures = measures
 bmr
 #df <- generateThreshVsPerfData(bmr, measures = list(fpr, tpr, mmce))
 #plotROCCurves(df)
+
+
+
+getRocs <- function(results){
+  dfRocAllIntegrated <- data.frame(value = integer(), prob = double(), learner = character(), class = character())
+  
+  for (i in 1:length(results)){
+      lrnResult <- results[[i]]
+      lrnName <- lrnResult$learner$callees[1]
+
+      meanIter <- setNames(aggregate(truth == response ~ iter, lrnResult$pred$data, mean), c("iter", "acc"))      
+      mejorIterIdx <- head(meanIter[order(-meanIter$acc),]$iter, 1)
+      mejorIterData <- lrnResult$pred$data[lrnResult$pred$data$iter == mejorIter,]
+      
+      #print(lrnName)
+
+      dfRocBrandTemp <- data.frame(value = ifelse(mejorIterData$truth == 'brand', 1, 0), prob = mejorIterData$prob.brand, learner = lrnName, class = 'brand')
+      dfRocMaleTemp <- data.frame(value = ifelse(mejorIterData$truth == 'male', 1, 0), prob = mejorIterData$prob.male, learner = lrnName, class = 'male')
+      dfRocFemaleTemp <- data.frame(value = ifelse(mejorIterData$truth == 'female', 1, 0), prob = mejorIterData$prob.female, learner = lrnName, class = 'female')
+      
+      dfRocAllIntegrated <- rbind(dfRocAllIntegrated, dfRocBrandTemp)
+      dfRocAllIntegrated <- rbind(dfRocAllIntegrated, dfRocMaleTemp)
+      dfRocAllIntegrated <- rbind(dfRocAllIntegrated, dfRocFemaleTemp)
+  }
+  
+  return(dfRocAllIntegrated)
+}
+
+dfRocsAll <- getRocs(bmr$results$task1)
+
+ggplot(dfRocsAll[dfRocsAll$class == 'brand',], aes(d = value, m = prob, color = learner)) +
+  ggtitle("Brand vs (Male & Female)") +
+  geom_roc(n.cuts = 0) +
+  style_roc()
+
+ggplot(dfRocsAll[dfRocsAll$class == 'male',], aes(d = value, m = prob, color = learner)) +
+  ggtitle("Male vs (Brand & Female)") +
+  geom_roc(n.cuts = 0) +
+  style_roc()
+
+ggplot(dfRocsAll[dfRocsAll$class == 'female',], aes(d = value, m = prob, color = learner)) +
+  ggtitle("Female vs (Male & Brand)") +
+  geom_roc(n.cuts = 0) +
+  style_roc()
 
 
 
