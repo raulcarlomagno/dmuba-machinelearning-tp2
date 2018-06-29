@@ -7,6 +7,10 @@ library("plotROC")
 data <- fread("data.csv", data.table = FALSE, stringsAsFactors = TRUE)
 glimpse(data)
 
+dataScore <- fread("data-score.csv", data.table = FALSE, stringsAsFactors = TRUE)
+rownames(dataScore) <- dataScore$user_id
+dataScore$user_id <- NULL
+
 train.set <- sample(nrow(data), size = round(0.8 * nrow(data)), replace = FALSE)
 test.set <- setdiff(seq_len(nrow(data)), train.set)
 
@@ -34,7 +38,6 @@ learnerClasses <- c(
 # [1] "Conditional Inference Trees"
 
 learners <- makeLearners(learnerClasses, predict.type = "prob")
-
 
 #entrenamos los modelos por separado para ver su performance individual
 measures <- list(acc, mmce, mlr::multiclass.aunu)
@@ -153,3 +156,8 @@ ggplot(dfRocAll, aes(d = value, m = prob, color = class)) +
 
 
 
+ensembleModelScoring = train(stackedLearner, task)
+ensemblePredScores = predict(ensembleModelScoring, makeClassifTask(id = "dataScore", data = dataScore, target = "gender"))
+ensemblePredPerf <- performance(ensemblePredScores, measures = list(acc, mmce, multiclass.aunu))
+ensemblePredPerf
+write.csv(ensemblePredScores$data$response, "data-scored.csv", row.names = TRUE, col.names = FALSE) 

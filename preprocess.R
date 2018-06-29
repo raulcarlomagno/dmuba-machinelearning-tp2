@@ -193,7 +193,7 @@ idsScore <- sample(length(ids), 400, replace = FALSE)
 ids <- setdiff(ids, idsScore) #saco los id para scoring
 #idsTrain <- sample(length(ids), round(0.8 * length(ids)), replace = FALSE)
 
-fwrite(csvData[idsScore,-c("gender")], "data-score.csv", quote = TRUE)
+fwrite(csvData[idsScore,], "data-score.csv", quote = TRUE)
 #fwrite(csvData[idsTrain,-c("user_id")], "data-train.csv", quote = TRUE)
 #fwrite(csvData[-idsTrain,-c("user_id")], "data-test.csv", quote = TRUE)
 fwrite(csvData[ids,-c("user_id")], "data.csv", quote = TRUE)
