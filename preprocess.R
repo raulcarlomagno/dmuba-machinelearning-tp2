@@ -175,7 +175,7 @@ plot_missing(csvData)
 plot_histogram(csvData)
 plot_bar(csvData)
 plot_boxplot(csvData, by = "gender")
-create_report(csvData)
+#create_report(csvData)
 
 summary(csvData$profile_yn)
 

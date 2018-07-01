@@ -160,4 +160,5 @@ ensembleModelScoring = train(stackedLearner, task)
 ensemblePredScores = predict(ensembleModelScoring, makeClassifTask(id = "dataScore", data = dataScore, target = "gender"))
 ensemblePredPerf <- performance(ensemblePredScores, measures = list(acc, mmce, multiclass.aunu))
 ensemblePredPerf
-write.csv(ensemblePredScores$data$response, "data-scored.csv", row.names = TRUE, col.names = FALSE) 
+dataScored <- data.frame(ID = rownames(dataScore), gender = ensemblePredScores$data$response)
+write.csv(dataScored, "data-scored.csv", row.names = FALSE) 
