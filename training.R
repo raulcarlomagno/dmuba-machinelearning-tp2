@@ -58,7 +58,7 @@ getRocs <- function(results){
 
       meanIter <- setNames(aggregate(truth == response ~ iter, lrnResult$pred$data, mean), c("iter", "acc"))      
       mejorIterIdx <- head(meanIter[order(-meanIter$acc),]$iter, 1)
-      mejorIterData <- lrnResult$pred$data[lrnResult$pred$data$iter == mejorIter,]
+      mejorIterData <- lrnResult$pred$data[lrnResult$pred$data$iter == mejorIterIdx,]
       
       #print(lrnName)
 
